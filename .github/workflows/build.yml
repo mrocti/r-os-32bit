@@ -31,8 +31,8 @@ jobs:
 
       - name: Build Bootable Hard Disk Image (.img)
         run: |
-          # 1. Create a 600MB blank disk image
-          dd if=/dev/zero of=output/artifacts/r-os-32bit.img bs=1M count=600
+          # 1. Create a 1200MB blank disk image
+          dd if=/dev/zero of=output/artifacts/r-os-32bit.img bs=1M count=1200
 
           # 2. Partition as MBR bootable
           parted -s output/artifacts/r-os-32bit.img mklabel msdos
