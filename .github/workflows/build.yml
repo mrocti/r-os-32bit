@@ -22,37 +22,50 @@ jobs:
         run: |
           docker build --platform linux/386 -t r-os-32 .
           CONTAINER_ID=$(docker create --platform linux/386 r-os-32)
-          mkdir -p output/iso_root output/artifacts
-          docker export $CONTAINER_ID | tar -x -C output/iso_root
-          sudo chmod -R a+rX output/iso_root
+          mkdir -p output/rootfs output/artifacts
+          docker export $CONTAINER_ID | tar -x -C output/rootfs
+          sudo chmod -R a+rX output/rootfs
 
-      - name: Install ISO generation tools
-        run: sudo apt-get update && sudo apt-get install -y xorriso isolinux syslinux-common
+      - name: Install Syslinux and Disk Tools
+        run: sudo apt-get update && sudo apt-get install -y syslinux extlinux syslinux-common parted dosfstools e2fsprogs
 
-      - name: Build Bootable ISO
+      - name: Build Bootable Hard Disk Image (.img)
         run: |
-          sudo mkdir -p output/iso_root/boot/isolinux
-          sudo cp /usr/lib/ISOLINUX/isolinux.bin output/iso_root/boot/isolinux/
-          sudo cp /usr/lib/syslinux/modules/bios/ldlinux.c32 output/iso_root/boot/isolinux/ || true
+          # 1. Create a 600MB blank disk image
+          dd if=/dev/zero of=output/artifacts/r-os-32bit.img bs=1M count=600
 
-          # Create isolinux boot configuration
-          sudo bash -c 'cat << "EOF" > output/iso_root/boot/isolinux/isolinux.cfg
+          # 2. Partition as MBR bootable
+          parted -s output/artifacts/r-os-32bit.img mklabel msdos
+          parted -s output/artifacts/r-os-32bit.img mkpart primary ext4 1MiB 100%
+          parted -s output/artifacts/r-os-32bit.img set 1 boot on
+
+          # 3. Mount partition and format ext4
+          sudo losetup -Pf output/artifacts/r-os-32bit.img
+          LOOPDEV=$(losetup -a | grep "r-os-32bit.img" | head -n1 | cut -d: -f1)
+          sudo mkfs.ext4 -F -O ^64bit,^metadata_csum ${LOOPDEV}p1
+
+          # 4. Copy files to image
+          mkdir -p mnt
+          sudo mount ${LOOPDEV}p1 mnt
+          sudo cp -a output/rootfs/. mnt/
+
+          # 5. Configure Extlinux Bootloader
+          sudo extlinux --install mnt/boot
+          sudo bash -c 'cat << "EOF" > mnt/boot/extlinux.conf
           DEFAULT alpine
           LABEL alpine
             KERNEL /boot/vmlinuz-lts
             INITRD /boot/initramfs-lts
-            APPEND root=/dev/sr0 console=tty0 console=ttyS0,115200
+            APPEND root=/dev/sda1 rw console=tty0 console=ttyS0,115200 rootwait
           EOF'
 
-          sudo xorriso -as mkisofs \
-            -o output/artifacts/r-os-32bit.iso \
-            -b boot/isolinux/isolinux.bin \
-            -c boot/isolinux/boot.cat \
-            -no-emul-boot -boot-load-size 4 -boot-info-table \
-            output/iso_root
+          # 6. Install MBR boot record
+          sudo umount mnt
+          sudo dd if=/usr/lib/syslinux/mbr/mbr.bin of=$LOOPDEV bs=440 count=1 conv=notrunc
+          sudo losetup -d $LOOPDEV
 
-      - name: Upload Bootable ISO
+      - name: Upload Bootable Hard Disk
         uses: actions/upload-artifact@v4
         with:
-          name: r-os-32bit-iso
-          path: output/artifacts/r-os-32bit.iso
+          name: r-os-32bit-img
+          path: output/artifacts/r-os-32bit.img
