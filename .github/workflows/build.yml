@@ -1,0 +1,32 @@
+name: Build 32-bit OS for v86
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU for 32-bit emulation
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build rootfs image
+        run: |
+          docker build --platform linux/386 -t r-os-32 .
+          CONTAINER_ID=$(docker create --platform linux/386 r-os-32)
+          mkdir -p output
+          docker export $CONTAINER_ID > output/rootfs.tar
+
+      - name: Upload OS image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: r-os-32bit-rootfs
+          path: output/rootfs.tar
