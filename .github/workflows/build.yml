@@ -24,17 +24,19 @@ jobs:
           CONTAINER_ID=$(docker create --platform linux/386 r-os-32)
           mkdir -p output/iso_root output/artifacts
           docker export $CONTAINER_ID | tar -x -C output/iso_root
+          # Fix read permissions across all files
+          sudo chmod -R a+rX output/iso_root
 
       - name: Install ISO generation tools
         run: sudo apt-get update && sudo apt-get install -y xorriso isolinux syslinux-common
 
       - name: Build Bootable ISO
         run: |
-          mkdir -p output/iso_root/boot/isolinux
-          cp /usr/lib/ISOLINUX/isolinux.bin output/iso_root/boot/isolinux/
-          cp /usr/lib/syslinux/modules/bios/ldlinux.c32 output/iso_root/boot/isolinux/ || true
+          sudo mkdir -p output/iso_root/boot/isolinux
+          sudo cp /usr/lib/ISOLINUX/isolinux.bin output/iso_root/boot/isolinux/
+          sudo cp /usr/lib/syslinux/modules/bios/ldlinux.c32 output/iso_root/boot/isolinux/ || true
           
-          xorriso -as mkisofs \
+          sudo xorriso -as mkisofs \
             -o output/artifacts/r-os-32bit.iso \
             -b boot/isolinux/isolinux.bin \
             -c boot/isolinux/boot.cat \
