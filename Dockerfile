@@ -28,11 +28,10 @@ RUN apk update && apk add --no-cache \
     dbus \
     ttf-dejavu
 
-# Enable essential background services
+# Enable essential background services (Alpine 3.18 valid set)
 RUN rc-update add devfs sysinit \
     && rc-update add dmesg sysinit \
     && rc-update add mdev sysinit \
-    && rc-update add hwdeps sysinit \
     && rc-update add dbus default
 
 # Configure auto-login for root on tty1
