@@ -1,4 +1,4 @@
-FROM i386/alpine:3.18
+FROM --platform=linux/386 i386/alpine:3.18
 
 # Enable main and community repositories
 RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.18/main" > /etc/apk/repositories && \
@@ -8,7 +8,6 @@ RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.18/main" > /etc/apk/repositor
 RUN apk update && apk add --no-cache \
     openrc \
     alpine-base \
-    eudev \
     linux-lts \
     linux-firmware-none \
     syslinux \
@@ -20,32 +19,49 @@ RUN apk update && apk add --no-cache \
     sudo \
     xorg-server \
     xf86-video-vesa \
-    xf86-input-libinput \
-    xf86-input-evdev \
     xfce4-session \
     xfce4-panel \
     xfdesktop \
     xfwm4 \
     xfce4-terminal \
     dbus \
-    ttf-dejavu
+    setxkbmap \
+    kbd-bkeymaps \
+    alpine-conf \
+    eudev \
+    xf86-input-libinput \
+    xf86-input-evdev
 
 # Enable essential background services for device and bus discovery
 RUN rc-update add devfs sysinit \
     && rc-update add dmesg sysinit \
-    && rc-update add mdev sysinit \
     && rc-update add udev sysinit \
     && rc-update add udev-trigger sysinit \
     && rc-update add dbus default
+
+# Set the OS hostname
+RUN echo "raduos" > /etc/hostname
 
 # Configure auto-login for root on tty1
 RUN sed -i 's/tty1::respawn:\/sbin\/getty 38400 tty1/tty1::respawn:\/sbin\/getty -n -l \/usr\/local\/bin\/autologin 38400 tty1/' /etc/inittab
 
 # Create autologin script and launch XFCE automatically
-RUN echo -e '#!/bin/sh\nexec /bin/login -f root' > /usr/local/bin/autologin \
+RUN printf '#!/bin/sh\nexec /bin/login -f root\n' > /usr/local/bin/autologin \
     && chmod +x /usr/local/bin/autologin \
     && echo "exec startxfce4" > /root/.xinitrc \
-    && echo -e '\nif [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then\n  startx\nfi' >> /root/.profile
+    && printf '\nif [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then\n  startx\nfi\n' >> /root/.profile
 
 # Set empty password for root
 RUN passwd -d root
+
+# Ensure /tmp has correct permissions for Xorg lock files
+RUN chmod 1777 /tmp
+
+# Configure keyboard layout for virtual console and X11
+RUN setup-keymap de de \
+    && mkdir -p /etc/X11/xorg.conf.d \
+    && echo 'Section "InputClass"' > /etc/X11/xorg.conf.d/00-keyboard.conf \
+    && echo '  Identifier "system-keyboard"' >> /etc/X11/xorg.conf.d/00-keyboard.conf \
+    && echo '  MatchIsKeyboard "on"' >> /etc/X11/xorg.conf.d/00-keyboard.conf \
+    && echo '  Option "XkbLayout" "de"' >> /etc/X11/xorg.conf.d/00-keyboard.conf \
+    && echo 'EndSection' >> /etc/X11/xorg.conf.d/00-keyboard.conf
