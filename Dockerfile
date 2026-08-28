@@ -30,43 +30,38 @@ RUN apk update && apk add --no-cache \
     ttf-dejavu
 
 # Create static Xorg configuration for v86 PS/2 input and VESA graphics
-RUN mkdir -p /etc/X11 && cat << "EOF" > /etc/X11/xorg.conf
-Section "ServerLayout"
-    Identifier     "Layout0"
-    Screen      0  "Screen0"
-    InputDevice    "Keyboard0" "CoreKeyboard"
-    InputDevice    "Mouse0" "CorePointer"
-EndSection
-
-Section "InputDevice"
-    Identifier     "Keyboard0"
-    Driver         "kbd"
-    Option         "Device" "/dev/input/event0"
-EndSection
-
-Section "InputDevice"
-    Identifier     "Mouse0"
-    Driver         "mouse"
-    Option         "Protocol" "auto"
-    Option         "Device" "/dev/input/mice"
-    Option         "ZAxisMapping" "4 5"
-EndSection
-
-Section "Device"
-    Identifier     "Card0"
-    Driver         "vesa"
-EndSection
-
-Section "Screen"
-    Identifier     "Screen0"
-    Device         "Card0"
-    DefaultDepth   24
-    SubSection "Display"
-        Depth      24
-        Modes      "1024x768" "800x600"
-    EndSubSection
-EndSection
-EOF
+RUN mkdir -p /etc/X11 && \
+    echo 'Section "ServerLayout"' > /etc/X11/xorg.conf && \
+    echo '    Identifier "Layout0"' >> /etc/X11/xorg.conf && \
+    echo '    Screen 0 "Screen0"' >> /etc/X11/xorg.conf && \
+    echo '    InputDevice "Keyboard0" "CoreKeyboard"' >> /etc/X11/xorg.conf && \
+    echo '    InputDevice "Mouse0" "CorePointer"' >> /etc/X11/xorg.conf && \
+    echo 'EndSection' >> /etc/X11/xorg.conf && \
+    echo 'Section "InputDevice"' >> /etc/X11/xorg.conf && \
+    echo '    Identifier "Keyboard0"' >> /etc/X11/xorg.conf && \
+    echo '    Driver "kbd"' >> /etc/X11/xorg.conf && \
+    echo '    Option "Device" "/dev/input/event0"' >> /etc/X11/xorg.conf && \
+    echo 'EndSection' >> /etc/X11/xorg.conf && \
+    echo 'Section "InputDevice"' >> /etc/X11/xorg.conf && \
+    echo '    Identifier "Mouse0"' >> /etc/X11/xorg.conf && \
+    echo '    Driver "mouse"' >> /etc/X11/xorg.conf && \
+    echo '    Option "Protocol" "auto"' >> /etc/X11/xorg.conf && \
+    echo '    Option "Device" "/dev/input/mice"' >> /etc/X11/xorg.conf && \
+    echo '    Option "ZAxisMapping" "4 5"' >> /etc/X11/xorg.conf && \
+    echo 'EndSection' >> /etc/X11/xorg.conf && \
+    echo 'Section "Device"' >> /etc/X11/xorg.conf && \
+    echo '    Identifier "Card0"' >> /etc/X11/xorg.conf && \
+    echo '    Driver "vesa"' >> /etc/X11/xorg.conf && \
+    echo 'EndSection' >> /etc/X11/xorg.conf && \
+    echo 'Section "Screen"' >> /etc/X11/xorg.conf && \
+    echo '    Identifier "Screen0"' >> /etc/X11/xorg.conf && \
+    echo '    Device "Card0"' >> /etc/X11/xorg.conf && \
+    echo '    DefaultDepth 24' >> /etc/X11/xorg.conf && \
+    echo '    SubSection "Display"' >> /etc/X11/xorg.conf && \
+    echo '        Depth 24' >> /etc/X11/xorg.conf && \
+    echo '        Modes "1024x768" "800x600"' >> /etc/X11/xorg.conf && \
+    echo '    EndSubSection' >> /etc/X11/xorg.conf && \
+    echo 'EndSection' >> /etc/X11/xorg.conf
 
 # Enable essential background services
 RUN rc-update add devfs sysinit \
