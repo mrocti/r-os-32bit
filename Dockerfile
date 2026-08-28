@@ -4,10 +4,11 @@ FROM i386/alpine:3.18
 RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.18/main" > /etc/apk/repositories && \
     echo "https://dl-cdn.alpinelinux.org/alpine/v3.18/community" >> /etc/apk/repositories
 
-# Install base system, kernel, Xorg, input drivers, and XFCE desktop packages
+# Install base system, kernel, Xorg, input drivers, eudev, and XFCE desktop packages
 RUN apk update && apk add --no-cache \
     openrc \
     alpine-base \
+    eudev \
     linux-lts \
     linux-firmware-none \
     syslinux \
@@ -19,8 +20,8 @@ RUN apk update && apk add --no-cache \
     sudo \
     xorg-server \
     xf86-video-vesa \
-    xf86-input-mouse \
-    xf86-input-kbd \
+    xf86-input-libinput \
+    xf86-input-evdev \
     xfce4-session \
     xfce4-panel \
     xfdesktop \
@@ -29,44 +30,12 @@ RUN apk update && apk add --no-cache \
     dbus \
     ttf-dejavu
 
-# Create static Xorg configuration for v86 PS/2 input and VESA graphics
-RUN mkdir -p /etc/X11 && \
-    echo 'Section "ServerLayout"' > /etc/X11/xorg.conf && \
-    echo '    Identifier "Layout0"' >> /etc/X11/xorg.conf && \
-    echo '    Screen 0 "Screen0"' >> /etc/X11/xorg.conf && \
-    echo '    InputDevice "Keyboard0" "CoreKeyboard"' >> /etc/X11/xorg.conf && \
-    echo '    InputDevice "Mouse0" "CorePointer"' >> /etc/X11/xorg.conf && \
-    echo 'EndSection' >> /etc/X11/xorg.conf && \
-    echo 'Section "InputDevice"' >> /etc/X11/xorg.conf && \
-    echo '    Identifier "Keyboard0"' >> /etc/X11/xorg.conf && \
-    echo '    Driver "kbd"' >> /etc/X11/xorg.conf && \
-    echo '    Option "Device" "/dev/input/event0"' >> /etc/X11/xorg.conf && \
-    echo 'EndSection' >> /etc/X11/xorg.conf && \
-    echo 'Section "InputDevice"' >> /etc/X11/xorg.conf && \
-    echo '    Identifier "Mouse0"' >> /etc/X11/xorg.conf && \
-    echo '    Driver "mouse"' >> /etc/X11/xorg.conf && \
-    echo '    Option "Protocol" "auto"' >> /etc/X11/xorg.conf && \
-    echo '    Option "Device" "/dev/input/mice"' >> /etc/X11/xorg.conf && \
-    echo '    Option "ZAxisMapping" "4 5"' >> /etc/X11/xorg.conf && \
-    echo 'EndSection' >> /etc/X11/xorg.conf && \
-    echo 'Section "Device"' >> /etc/X11/xorg.conf && \
-    echo '    Identifier "Card0"' >> /etc/X11/xorg.conf && \
-    echo '    Driver "vesa"' >> /etc/X11/xorg.conf && \
-    echo 'EndSection' >> /etc/X11/xorg.conf && \
-    echo 'Section "Screen"' >> /etc/X11/xorg.conf && \
-    echo '    Identifier "Screen0"' >> /etc/X11/xorg.conf && \
-    echo '    Device "Card0"' >> /etc/X11/xorg.conf && \
-    echo '    DefaultDepth 24' >> /etc/X11/xorg.conf && \
-    echo '    SubSection "Display"' >> /etc/X11/xorg.conf && \
-    echo '        Depth 24' >> /etc/X11/xorg.conf && \
-    echo '        Modes "1024x768" "800x600"' >> /etc/X11/xorg.conf && \
-    echo '    EndSubSection' >> /etc/X11/xorg.conf && \
-    echo 'EndSection' >> /etc/X11/xorg.conf
-
-# Enable essential background services
+# Enable essential background services for device and bus discovery
 RUN rc-update add devfs sysinit \
     && rc-update add dmesg sysinit \
     && rc-update add mdev sysinit \
+    && rc-update add udev sysinit \
+    && rc-update add udev-trigger sysinit \
     && rc-update add dbus default
 
 # Configure auto-login for root on tty1
