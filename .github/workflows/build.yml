@@ -49,17 +49,27 @@ jobs:
           sudo mount ${LOOPDEV}p1 mnt
           sudo cp -a output/rootfs/. mnt/
 
-          # 5. Configure Extlinux Bootloader
+          # 5. Create /etc/fstab so the system knows its root drive
+          sudo bash -c 'cat << "EOF" > mnt/etc/fstab
+          /dev/sda1  /      ext4    defaults,noatime 0 1
+          proc       /proc  proc    defaults         0 0
+          sysfs      /sys   sysfs   defaults         0 0
+          devpts     /dev/pts devpts defaults        0 0
+          EOF'
+
+          # 6. Configure Extlinux Bootloader with Alpine root parameters
           sudo extlinux --install mnt/boot
           sudo bash -c 'cat << "EOF" > mnt/boot/extlinux.conf
           DEFAULT alpine
+          PROMPT 0
+          TIMEOUT 10
           LABEL alpine
             KERNEL /boot/vmlinuz-lts
             INITRD /boot/initramfs-lts
-            APPEND root=/dev/sda1 rw console=tty0 console=ttyS0,115200 rootwait
+            APPEND root=/dev/sda1 rootfstype=ext4 modules=ext4,sd-mod,loop rw console=tty0 console=ttyS0,115200 rootwait
           EOF'
 
-          # 6. Install MBR boot record
+          # 7. Install MBR boot record
           sudo umount mnt
           sudo dd if=/usr/lib/syslinux/mbr/mbr.bin of=$LOOPDEV bs=440 count=1 conv=notrunc
           sudo losetup -d $LOOPDEV
