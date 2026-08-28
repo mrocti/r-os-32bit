@@ -24,7 +24,6 @@ jobs:
           CONTAINER_ID=$(docker create --platform linux/386 r-os-32)
           mkdir -p output/iso_root output/artifacts
           docker export $CONTAINER_ID | tar -x -C output/iso_root
-          # Fix read permissions across all files
           sudo chmod -R a+rX output/iso_root
 
       - name: Install ISO generation tools
@@ -35,7 +34,16 @@ jobs:
           sudo mkdir -p output/iso_root/boot/isolinux
           sudo cp /usr/lib/ISOLINUX/isolinux.bin output/iso_root/boot/isolinux/
           sudo cp /usr/lib/syslinux/modules/bios/ldlinux.c32 output/iso_root/boot/isolinux/ || true
-          
+
+          # Create isolinux boot configuration
+          sudo bash -c 'cat << "EOF" > output/iso_root/boot/isolinux/isolinux.cfg
+          DEFAULT alpine
+          LABEL alpine
+            KERNEL /boot/vmlinuz-lts
+            INITRD /boot/initramfs-lts
+            APPEND root=/dev/sr0 console=tty0 console=ttyS0,115200
+          EOF'
+
           sudo xorriso -as mkisofs \
             -o output/artifacts/r-os-32bit.iso \
             -b boot/isolinux/isolinux.bin \
