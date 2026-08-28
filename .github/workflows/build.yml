@@ -18,15 +18,31 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build rootfs image
+      - name: Build rootfs container
         run: |
           docker build --platform linux/386 -t r-os-32 .
           CONTAINER_ID=$(docker create --platform linux/386 r-os-32)
-          mkdir -p output
-          docker export $CONTAINER_ID > output/rootfs.tar
+          mkdir -p output/iso_root output/artifacts
+          docker export $CONTAINER_ID | tar -x -C output/iso_root
 
-      - name: Upload OS image artifact
+      - name: Install ISO generation tools
+        run: sudo apt-get update && sudo apt-get install -y xorriso isolinux syslinux-common
+
+      - name: Build Bootable ISO
+        run: |
+          mkdir -p output/iso_root/boot/isolinux
+          cp /usr/lib/ISOLINUX/isolinux.bin output/iso_root/boot/isolinux/
+          cp /usr/lib/syslinux/modules/bios/ldlinux.c32 output/iso_root/boot/isolinux/ || true
+          
+          xorriso -as mkisofs \
+            -o output/artifacts/r-os-32bit.iso \
+            -b boot/isolinux/isolinux.bin \
+            -c boot/isolinux/boot.cat \
+            -no-emul-boot -boot-load-size 4 -boot-info-table \
+            output/iso_root
+
+      - name: Upload Bootable ISO
         uses: actions/upload-artifact@v4
         with:
-          name: r-os-32bit-rootfs
-          path: output/rootfs.tar
+          name: r-os-32bit-iso
+          path: output/artifacts/r-os-32bit.iso
