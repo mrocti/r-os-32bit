@@ -1,10 +1,10 @@
 FROM i386/alpine:3.18
 
-# Explicitly set main and community repositories
+# Enable main and community repositories
 RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.18/main" > /etc/apk/repositories && \
     echo "https://dl-cdn.alpinelinux.org/alpine/v3.18/community" >> /etc/apk/repositories
 
-# Install base, kernel, Xorg, and XFCE desktop components
+# Install base system, kernel, Xorg, and XFCE desktop packages
 RUN apk update && apk add --no-cache \
     openrc \
     alpine-base \
@@ -18,18 +18,15 @@ RUN apk update && apk add --no-cache \
     neofetch \
     sudo \
     xorg-server \
-    xf86-video-modesetting \
     xf86-video-vesa \
-    xf86-input-mouse \
-    xf86-input-keyboard \
+    xf86-input-libinput \
     xfce4-session \
     xfce4-panel \
     xfdesktop \
     xfwm4 \
     xfce4-terminal \
     dbus \
-    mesa-dri-swrast \
-    font-dejavu
+    ttf-dejavu
 
 # Enable essential background services
 RUN rc-update add devfs sysinit \
