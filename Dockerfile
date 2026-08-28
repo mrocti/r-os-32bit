@@ -37,6 +37,10 @@ RUN rc-update add devfs sysinit \
     && rc-update add dmesg sysinit \
     && rc-update add udev sysinit \
     && rc-update add udev-trigger sysinit \
+    && rc-update add bootmisc boot \
+    && rc-update add hostname boot \
+    && rc-update add sysctl boot \
+    && rc-update add syslog boot \
     && rc-update add dbus default
 
 # Set the OS hostname
