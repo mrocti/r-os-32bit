@@ -37,10 +37,12 @@ RUN rc-update add devfs sysinit \
     && rc-update add dmesg sysinit \
     && rc-update add udev sysinit \
     && rc-update add udev-trigger sysinit \
+    && rc-update add sysfs sysinit \
     && rc-update add bootmisc boot \
     && rc-update add hostname boot \
     && rc-update add sysctl boot \
     && rc-update add syslog boot \
+    && rc-update add root boot \
     && rc-update add dbus default
 
 # Set the OS hostname
@@ -58,8 +60,8 @@ RUN printf '#!/bin/sh\nexec /bin/login -f root\n' > /usr/local/bin/autologin \
 # Set empty password for root
 RUN passwd -d root
 
-# Ensure /tmp has correct permissions for Xorg lock files
-RUN chmod 1777 /tmp
+# Create /tmp manually and ensure it has correct permissions for Xorg lock files, because openrc doesn't run in container build
+RUN mkdir -p /tmp && chmod 1777 /tmp && mkdir -p /root && touch /root/.Xauthority
 
 # Configure keyboard layout for virtual console and X11
 RUN setup-keymap de de \
