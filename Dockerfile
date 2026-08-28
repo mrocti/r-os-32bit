@@ -4,7 +4,7 @@ FROM i386/alpine:3.18
 RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.18/main" > /etc/apk/repositories && \
     echo "https://dl-cdn.alpinelinux.org/alpine/v3.18/community" >> /etc/apk/repositories
 
-# Install base system, kernel, Xorg, and XFCE desktop packages
+# Install base system, kernel, Xorg, input drivers, and XFCE desktop packages
 RUN apk update && apk add --no-cache \
     openrc \
     alpine-base \
@@ -19,7 +19,8 @@ RUN apk update && apk add --no-cache \
     sudo \
     xorg-server \
     xf86-video-vesa \
-    xf86-input-libinput \
+    xf86-input-mouse \
+    xf86-input-kbd \
     xfce4-session \
     xfce4-panel \
     xfdesktop \
@@ -28,7 +29,46 @@ RUN apk update && apk add --no-cache \
     dbus \
     ttf-dejavu
 
-# Enable essential background services (Alpine 3.18 valid set)
+# Create static Xorg configuration for v86 PS/2 input and VESA graphics
+RUN mkdir -p /etc/X11 && cat << "EOF" > /etc/X11/xorg.conf
+Section "ServerLayout"
+    Identifier     "Layout0"
+    Screen      0  "Screen0"
+    InputDevice    "Keyboard0" "CoreKeyboard"
+    InputDevice    "Mouse0" "CorePointer"
+EndSection
+
+Section "InputDevice"
+    Identifier     "Keyboard0"
+    Driver         "kbd"
+    Option         "Device" "/dev/input/event0"
+EndSection
+
+Section "InputDevice"
+    Identifier     "Mouse0"
+    Driver         "mouse"
+    Option         "Protocol" "auto"
+    Option         "Device" "/dev/input/mice"
+    Option         "ZAxisMapping" "4 5"
+EndSection
+
+Section "Device"
+    Identifier     "Card0"
+    Driver         "vesa"
+EndSection
+
+Section "Screen"
+    Identifier     "Screen0"
+    Device         "Card0"
+    DefaultDepth   24
+    SubSection "Display"
+        Depth      24
+        Modes      "1024x768" "800x600"
+    EndSubSection
+EndSection
+EOF
+
+# Enable essential background services
 RUN rc-update add devfs sysinit \
     && rc-update add dmesg sysinit \
     && rc-update add mdev sysinit \
