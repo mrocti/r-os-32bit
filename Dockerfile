@@ -6,7 +6,7 @@ RUN apk add --no-cache \
     agetty \
     alpine-base \
     htop \
-    fastfetch \
+    neofetch \
     curl \
     nano
 
